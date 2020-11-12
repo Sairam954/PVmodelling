@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 
 
-parameters = ['FINESSE']
-parmeters_mean = {'Q':6000,
+parameters = ['Q','LAMDA_R','ER','FINESSE']
+parmeters_mean = {'Q':6500,
                   'ER':10,
                   'LAMDA_R':1550}
 parameters_std_intra = {'Q':(0.076144+0.094),#(intra std+ residual std)
@@ -20,8 +20,8 @@ Q_MEAN = 6500
 FSR = 20 *1e-9
 LAMDA_R = 1550* 1e-9
 parmeters_mean['FINESSE'] = (Q_MEAN*FSR)/LAMDA_R
-die_xdim = 30 #mm
-die_ydim = 37.5 #mm
+die_xdim = 15 #mm
+die_ydim = 30 #mm
 
 ring_radius = 5*1e-3 #mm
 pitch = 5*1e-3 #mm
@@ -32,6 +32,8 @@ block_xdim = 0.2 #mm
 block_ydim = 0.2 #mm
 folder_name = 'Block2by2'
 
+print(int(die_xdim/block_xdim))
+print(int(die_ydim/block_ydim))
 no_of_blocks = int(die_xdim/block_xdim)*int(die_ydim/block_ydim)
 
 for parameter in parameters:
