@@ -20,12 +20,12 @@ Q_dies_config = arc_obj.getParameterDieFiles(arc_obj.Q_data_path)
 FINESSE_dies_config = arc_obj.getParameterDieFiles(arc_obj.FINESSE_data_path)
 
 die_resolution_nlamda_rslts = []
-configuration = {}
 supported_nlamda = []
 total_power_for_lamda = []
 die_no = 0
 no_of_dies = 80
 verbose = 1
+arc_obj.verbose = verbose
 n_lamda_range = np.arange(64,arc_obj.nlamda)
 try:
     channel_spacing = (arc_obj.FSR / (1 + arc_obj.nlamda))
@@ -64,8 +64,7 @@ for die in range(no_of_dies):
                 print("Per Wavelength Power dBm :", per_wavelength_power_dbm)
         lamdar_per_channel = np.arange(arc_obj.RESONANCE_WAVELENGTH, (arc_obj.RESONANCE_WAVELENGTH + channel_spacing * nlamda),
                                                channel_spacing)
-        configuration['N'] = nlamda
-        configuration['M'] = arc_obj.no_of_modules
+
         arch, aggre_blk, pre_filter = getArchConfigParamsFromDie(arc_obj.no_of_modules, nlamda, arc_obj.no_of_rings_weighing_blk,
                                                              arch_start_block_indx, no_of_blocks_x_for_vector_imprint, ER_config,
                                                              Q_config, LAMDA_R_config, FINESSE_config)
@@ -82,49 +81,18 @@ for die in range(no_of_dies):
             if supported == False:
                 break
             lamda_power = []
+            module = arch[module_name]
             # Each Array is a one lamda
-            for array_name in arch[module_name].keys():
+            for array_name in module.keys():
                 array_result = {}
                 if supported == False:
                     break
 
-                array = arch[module_name][array_name]
+                array = module[array_name]
                 #weighing block mr selection
                 mr_0 = array[list(array.keys())[0]]
-                insertion_loss_percm = 3.7  # dB
-                pre_filter_wvg_length = 300  # um
-                post_filter_wvg_length = 600  # um
-                # print("Calculate power for Wavelength ",(array_idx+1))
-                # pre weighing blk
-                pre_weigh_loss = arc_obj.getPreWeighBlkLoss(module_name,pre_filter,wavelength_idx=array_idx,lamdar_per_channel=lamdar_per_channel)
-                #Weight and Imprint blk
-                #calculate the weighing block wvg propogation loss and vector imprint block wvg loss plus MZI insertion loss
-                weigh_blk_loss = arc_obj.getInsertionLoss(arc_obj.no_of_rings_weighing_blk)
-                imprint_blk_loss = arc_obj.getInsertionLossImprintBlk()
-
-                # print("Weigh blk wvg IL ",weigh_blk_loss)
-                # print("Imprint blk wvg IL ",imprint_blk_loss)
-
-                #aggregation block
-                # calculate summation Mr ring drop loss
-                aggr_mr_drop_loss = arc_obj.getDropLossOfRing(aggre_blk[module_name]['mr_w' + str(array_idx)]['Q'],
-                                     aggre_blk[module_name]['mr_w' + str(array_idx)]['ER'],
-                                     lamdar_per_channel[array_idx], 0)
-                # print("Aggr blk Mr loss ",aggr_mr_drop_loss)
-
-
-                # pd is at the top
-
-                aggre_blk_loss = arc_obj.getAggregateBlkLoss(module_name,aggre_blk,wavelength_idx=array_idx,lamdar_per_channel=lamdar_per_channel,nlamda=nlamda)
-
-                # print("Total Aggregate block loss :",aggre_blk_loss)
-                total_insertion_loss_dB = pre_weigh_loss+weigh_blk_loss+imprint_blk_loss+aggre_blk_loss
-                if verbose!=0:
-                    print("Pre Weigh Block : ", pre_weigh_loss)
-                    print("Weigh Blk Loss : ", weigh_blk_loss)
-                    print("Imprint Blk Loss : ", imprint_blk_loss)
-                    print("Aggre_blk_Loss : ", aggre_blk_loss)
-                    print("Total Insertion losses dB: ", total_insertion_loss_dB)
+                #calculate total loss including prefilter,weighing block,imprintblock and aggregation block
+                total_insertion_loss_dB = arc_obj.getTotalLossOfArray(module_name,array_idx,pre_filter,aggre_blk,lamdar_per_channel,nlamda)
                 #calculate power of a wavelength
                 mr_wgt_ER = mr_0['ER']
                 mr_wgt_ER_dB = 10*np.log10(mr_wgt_ER)
