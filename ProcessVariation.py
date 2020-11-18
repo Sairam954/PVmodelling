@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-
+import os
 
 parameters = ['Q','LAMDA_R','ER','FINESSE']
 parmeters_mean = {'Q':6500,
@@ -28,9 +28,9 @@ pitch = 5*1e-3 #mm
 
 # block_xdim = 2*(ring_radius)+2*(pitch)
 # block_ydim = 2*(ring_radius)+2*(pitch)
-block_xdim = 0.2#mm
-block_ydim = 0.2 #mm
-folder_name = 'Block2by2'
+block_xdim = 0.1#mm
+block_ydim = 0.1 #mm
+folder_name = 'Block1by1'
 
 print(int(die_xdim/block_xdim))
 print(int(die_ydim/block_ydim))
@@ -46,7 +46,12 @@ for parameter in parameters:
 
        else:
               distribution = np.random.normal(mean, mean*std_intra, int(no_of_blocks))
-       waffer_map = distribution.reshape(int(die_xdim / block_xdim), int(die_ydim / block_ydim))
+       waffer_map = distribution.reshape(int(die_ydim / block_ydim),int(die_xdim / block_xdim))
+       print(waffer_map.shape)
+       if not os.path.exists('intrapvfolder/'+parameter+'/'+folder_name):
+              os.makedirs('intrapvfolder/'+parameter+'/'+folder_name)
+
+
        np.savetxt('intrapvfolder/'+parameter+'/'+folder_name+'IntraPV_'+parameter+'_block'+str(block_xdim*10)+'_'+str(block_ydim*10)+'.csv', waffer_map, delimiter=',')
        fig, ax = plt.subplots()
        waffer_map = np.ma.masked_where(waffer_map == 0, waffer_map)
@@ -87,7 +92,11 @@ for parameter in parameters:
        # creating csv's
        for die in range(no_of_dies):
               print("Die",die)
-              map = np.array(inter_die_map[die]).reshape(int(die_xdim / block_xdim), int(die_ydim / block_ydim))
+              map = np.array(inter_die_map[die]).reshape(int(die_ydim / block_ydim),int(die_xdim / block_xdim))
+              print(map.shape)
+              if not os.path.exists('interpvfolder/' + parameter + '/' + folder_name):
+                     os.makedirs('interpvfolder/' + parameter + '/' + folder_name)
+
               np.savetxt('interpvfolder/'+parameter+'/'+folder_name+'/InterDie_' +parameter+'_'+ str(die) +'_block'+str(int(block_xdim*1000))+'_'+str(int(block_ydim*1000))+".csv", map, delimiter=',')
               fig, ax = plt.subplots()
               waffer_map = np.ma.masked_where(waffer_map == 0, waffer_map)
@@ -106,32 +115,12 @@ for parameter in parameters:
                      ax.set_title('Block_Size ' + str(block_xdim) + 'mm' + ' X ' + str(block_ydim) + 'mm')
               # ax.set_title('Block_Size ' + str(block_xdim) + 'mm' + ' X ' + str(block_ydim) + 'mm')
               fig.colorbar(im, orientation='vertical')
+              if not os.path.exists('pvfigures/' + parameter + '/' + folder_name):
+                     os.makedirs('pvfigures/' + parameter + '/' + folder_name)
+
               plt.savefig('pvfigures/'+parameter+'/'+folder_name+'/InterDie_'+parameter+ str(die)+'_'+'_block'+str(int(block_xdim*1000))+'_'+str(int(block_ydim*1000))+'.png',dpi=1000)
               plt.show()
               # print("Plot Inter")
               # print("Parameter",parameter)
 
        print("Finished Parameter", parameter)
-
-
-# ax.bar(xpos, mean,
-#        yerr=std,
-#        align='center',
-#        alpha=0.5,
-#        ecolor='black',
-#        capsize=10)
-# ax.set_ylabel(' Q value')
-# ax.set_xticks(xpos)
-# # ax.set_xticklabels(labels)
-# ax.set_title('Process Variation')
-# plt.show()
-#
-
-
-# #ploting all the inter die variation
-# for die in no_of_dies:
-#        map = inter_die_map.reshape(int(die_xdim/block_xdim),int(die_ydim/block_ydim))
-
-
-
-

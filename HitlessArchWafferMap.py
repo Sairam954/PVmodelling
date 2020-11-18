@@ -38,11 +38,16 @@ def getArchConfigParamsFromDie(no_of_modules,no_of_arrays,no_of_rings_weighing_b
         pre_weigh_filter_no = 0
         # print('Module----', module_id)
         # print('rowindex ', block_row_idx)
+        print(no_of_arrays)
         for array_id in range(no_of_arrays):# N
             block_column_idx = arch_start_block_indx
             array = {}
             #pre weigh block filter
             config_params = {}
+            # print("Row ",block_row_idx+1 )
+            # print("Column ", block_column_idx-3)
+            # print(Q_config.shape)
+
             config_params['Q'] = Q_config[block_row_idx+1][block_column_idx-3]
             config_params['ER'] = ER_config[block_row_idx+1][block_column_idx-3]
             config_params['LAMDA_R'] = LAMDA_R_config[block_row_idx+1][block_column_idx-3]
