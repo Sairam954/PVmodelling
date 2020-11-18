@@ -1,0 +1,36 @@
+{
+  "arch_config": {
+    "preweighingblock": 1000,
+    "vectorimprintblock": 1000,
+    "pre_filter_wvg_length": 300,
+    "post_filter_wvg_length": 600,
+    "ring_radius": 7,
+    "pitch": 100,
+    "no_of_modules": 1,
+    "no_of_rings_weighing_blk": 2,
+    "nlamda": 65
+  },
+  "die_config": {
+    "die_x": 15,
+    "die_y": 30
+  },
+  "resolution_config": {
+    "HEATER_THICKNESS": 100e-9,
+    "CHIP_BOUNDARY_RADIUS": 1e-3,
+    "DESIGN_ER": 10
+  },
+  "design_config": {
+    "p_waveguide_maop": 100,
+    "detector_sensitivity": -20,
+    "RESONANCE_WAVELENGTH": 1550,
+    "FSR": 20,
+    "insertion_loss_percm": 3.7,
+    "mzi_insertion_loss": 3.30
+  },
+  "die_data_path": {
+    "ER_data_path": "interpvfolder/ER/Block1by1/",
+    "LAMDA_R_data_path": "interpvfolder/LAMDA_R/Block1by1/",
+    "Q_data_path": "interpvfolder/Q/Block1by1/",
+    "FINESSE_data_path" : "interpvfolder/FINESSE/Block1by1/"
+  }
+}
