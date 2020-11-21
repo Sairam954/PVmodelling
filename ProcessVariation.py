@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import os
 
-parameters = ['Q','LAMDA_R','ER','FINESSE']
+parameters = ['LAMDA_R', 'Q', 'ER', 'FINESSE']
 parmeters_mean = {'Q':6500,
                   'ER':10,
                   'LAMDA_R':1550}
@@ -16,21 +16,23 @@ parameters_std_inter = {'Q':0.06536,#(inter std)
                   'LAMDA_R':(0.33+1.40),#(Global +TXRX)
                         'FINESSE':0.06536}
 
-Q_MEAN = 6500
-FSR = 20 *1e-9
-LAMDA_R = 1550* 1e-9
+Q_MEAN = parmeters_mean['Q']
+FSR = 20 #nm
+LAMDA_R = parmeters_mean['LAMDA_R']
 parmeters_mean['FINESSE'] = (Q_MEAN*FSR)/LAMDA_R
+
 die_xdim = 15 #mm
 die_ydim = 30 #mm
 
-ring_radius = 5*1e-3 #mm
-pitch = 5*1e-3 #mm
+# ring_radius = 5*1e-3 #mm
+# pitch = 5*1e-3 #mm
 
 # block_xdim = 2*(ring_radius)+2*(pitch)
 # block_ydim = 2*(ring_radius)+2*(pitch)
 block_xdim = 0.1#mm
 block_ydim = 0.1 #mm
 folder_name = 'Block1by1'
+
 
 print(int(die_xdim/block_xdim))
 print(int(die_ydim/block_ydim))
@@ -93,7 +95,7 @@ for parameter in parameters:
        for die in range(no_of_dies):
               print("Die",die)
               map = np.array(inter_die_map[die]).reshape(int(die_ydim / block_ydim),int(die_xdim / block_xdim))
-              print(map.shape)
+              print("Inter Map :",map.shape)
               if not os.path.exists('interpvfolder/' + parameter + '/' + folder_name):
                      os.makedirs('interpvfolder/' + parameter + '/' + folder_name)
 

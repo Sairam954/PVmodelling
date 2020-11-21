@@ -14,7 +14,7 @@ def waferStyleVisualization(map,no_of_row,no_of_columns,xlabel,ylabel,title):
     # ax.set_xticks(np.arange(0, 240, 24));
     # ax.set_yticks(np.arange(0, 16, 1));
     ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    # ax.set_ylabel(ylabel)
     fig.colorbar(im, orientation='vertical')
 
 
@@ -23,7 +23,7 @@ def waferStyleVisualization(map,no_of_row,no_of_columns,xlabel,ylabel,title):
 
     plt.show()
 
-df = pd.read_csv('results/dievariation200by200.csv')
-map = df['resolution'].to_numpy()
-waferStyleVisualization(map,8,10,"Resolution Variation Across Dies",'30mm X 15mm Wafer','PV each block 200um X 200um')
+df = pd.read_csv('results/dievariation100by100.csv')
+map = df['max_supported_nlamda'].to_numpy()
+waferStyleVisualization(map,8,10,"Nlamda Variation Across Dies",'30mm X 15mm Wafer','PV each block 100um X 100um')
 print(df['resolution'])

@@ -47,6 +47,12 @@ def getArchConfigParamsFromDie(no_of_modules,no_of_arrays,no_of_rings_weighing_b
             # print("Row ",block_row_idx+1 )
             # print("Column ", block_column_idx-3)
             # print(Q_config.shape)
+            # print(ER_config.shape)
+            # LAMDA_R_config = np.transpose(LAMDA_R_config)
+            # print(LAMDA_R_config.shape)
+            # print(FINESSE_config.shape)
+            # print("Row", block_row_idx+1)
+            # print("Column", block_column_idx-3)
 
             config_params['Q'] = Q_config[block_row_idx+1][block_column_idx-3]
             config_params['ER'] = ER_config[block_row_idx+1][block_column_idx-3]

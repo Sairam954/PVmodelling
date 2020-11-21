@@ -37,6 +37,8 @@ class HitLessArchitecture():
         self.FSR = design_config["FSR"]
         self.insertion_loss_percm = design_config["insertion_loss_percm"]
         self.mzi_insertion_loss = design_config["mzi_insertion_loss"]
+        self.mzi_ER_dB = design_config["mzi_ER_dB"]
+        self.adc_pw_mw = design_config["adc_pw_mw"]
         # pv dies path containing csvs with design parameters like Q,FINESSE,ER and LAMDA_R
         die_data_path = config_dict["die_data_path"]
         self.ER_data_path = die_data_path["ER_data_path"]
@@ -128,12 +130,14 @@ class HitLessArchitecture():
         aggre_blk_loss = aggr_mr_drop_loss + aggr_wvg_loss + aggr_through_loss
         return aggre_blk_loss
 
-    def getPowerOfWavelength(self,mr_wgt_ER,total_insertion_loss_dB,per_wavelength_power_dbm):
+    def getPowerOfWavelengthFloorandCeiling(self,mr_wgt_ER,total_insertion_loss_dB,per_wavelength_power_dbm):
         weigh_blk_mr_ER = mr_wgt_ER
         weigh_blk_mr_ER_dB = 10 * np.log10(weigh_blk_mr_ER)
+        imprint_blk_mzi_ER_dB = self.mzi_ER_dB
         # print("ER of Weight block in dB", weigh_blk_mr_ER_dB)
-        pow_wavelength_at_pd_dbm = per_wavelength_power_dbm - weigh_blk_mr_ER_dB - total_insertion_loss_dB
-        return pow_wavelength_at_pd_dbm
+        pow_wavelength_at_pd_dbm_floor = per_wavelength_power_dbm - weigh_blk_mr_ER_dB -imprint_blk_mzi_ER_dB- total_insertion_loss_dB
+        pow_wavelength_at_pd_dbm_ceiling = per_wavelength_power_dbm-total_insertion_loss_dB
+        return pow_wavelength_at_pd_dbm_floor,pow_wavelength_at_pd_dbm_ceiling
 
     def getMaxThermalCrossTalkError(self,r_source,finesse):
 
@@ -144,15 +148,18 @@ class HitLessArchitecture():
         # we consider in an array if MR adjacent two MRs incur thermal losses so summation of the sources
         # considetring both the rings are at a similar or equal distance
         # heat_diffusion = 2*heat_diffusion
+
         max_error = 0.65*finesse*(self.HEATER_THICKNESS/(2*self.ring_radius*1e-6))*heat_diffusion
         return max_error
 
     def getResolution(self,mr_0):
         thermal_crosstalk_error = self.getMaxThermalCrossTalkError(r_source=(self.pitch * 1e-6), finesse=mr_0['FINESSE_R'])
-        resolution = 1 / (thermal_crosstalk_error)
-        resolution = resolution.astype(int)
         mr_pv_ER = mr_0['ER']
-        resolution = np.ceil(np.log2(resolution * (mr_pv_ER / self.DESIGN_ER))).astype(int)
+        resolution = 1 / (thermal_crosstalk_error)
+        resolution = resolution*((mr_pv_ER / self.DESIGN_ER))
+        # resolution = resolution.astype(int)
+        # print("Resoultion",np.log2(resolution))
+        resolution = np.ceil(np.log2(resolution)).astype(int)
          # resolution = int(resolution * (mr_pv_ER / DESIGN_ER))
         return resolution
     def getParameterDieFiles(self,path):

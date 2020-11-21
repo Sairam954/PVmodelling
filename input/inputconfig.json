@@ -4,11 +4,11 @@
     "vectorimprintblock": 1000,
     "pre_filter_wvg_length": 300,
     "post_filter_wvg_length": 600,
-    "ring_radius": 7,
+    "ring_radius": 4.55,
     "pitch": 100,
     "no_of_modules": 1,
     "no_of_rings_weighing_blk": 2,
-    "nlamda": 65
+    "nlamda": 99
   },
   "die_config": {
     "die_x": 15,
@@ -22,10 +22,12 @@
   "design_config": {
     "p_waveguide_maop": 100,
     "detector_sensitivity": -20,
+    "adc_pw_mw": 0.2,
     "RESONANCE_WAVELENGTH": 1550,
     "FSR": 20,
-    "insertion_loss_percm": 3.7,
-    "mzi_insertion_loss": 3.30
+    "insertion_loss_percm": 1,
+    "mzi_insertion_loss": 1.9,
+    "mzi_ER_dB": 23.15
   },
   "die_data_path": {
     "ER_data_path": "interpvfolder/ER/Block1by1/",
