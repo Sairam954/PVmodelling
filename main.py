@@ -12,7 +12,7 @@ DIE_NO = "die_no"
 CHANNEL_SPACING_LIMIT = 0.2
 
 config_path = 'input/inputconfig.json'
-result_filename = 'results/dievariation100by100.csv'
+result_filename = 'results/dievariation200by200.csv'
 
 config_dict = rd.readJsonConfig(config_path)
 arc_obj = HitLessArchitecture(config_dict)
@@ -74,7 +74,7 @@ for die in range(no_of_dies):
         lamdar_per_channel = np.arange(arc_obj.RESONANCE_WAVELENGTH, (arc_obj.RESONANCE_WAVELENGTH + channel_spacing * nlamda),
                                                channel_spacing)
 
-        arch, aggre_blk, pre_filter = getArchConfigParamsFromDie(arc_obj.no_of_modules, nlamda, arc_obj.no_of_rings_weighing_blk,
+        arch, aggre_blk, pre_filter, cnn_blk = getArchConfigParamsFromDie(arc_obj.no_of_modules, nlamda, arc_obj.no_of_rings_weighing_blk,
                                                              arch_start_block_indx, no_of_blocks_x_for_vector_imprint, ER_config,
                                                              Q_config, LAMDA_R_config, FINESSE_config)
         supported = True
@@ -102,7 +102,7 @@ for die in range(no_of_dies):
                 #weighing block mr selection
                 mr_0 = array[list(array.keys())[0]]
                 #calculate total loss including prefilter,weighing block,imprintblock and aggregation block
-                total_insertion_loss_dB = arc_obj.getTotalLossOfArray(module_name,array_idx,pre_filter,aggre_blk,lamdar_per_channel,nlamda)
+                total_insertion_loss_dB = arc_obj.getTotalLossOfArray(module_name,array_idx,pre_filter,aggre_blk,cnn_blk,lamdar_per_channel,nlamda)
                 # print("Total Insertion dB",total_insertion_loss_dB)
                 #calculate power of a wavelength
                 mr_wgt_ER = mr_0['ER']

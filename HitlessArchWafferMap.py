@@ -24,6 +24,7 @@ def getArchConfigParamsFromDie(no_of_modules,no_of_arrays,no_of_rings_weighing_b
     arc ={}
     aggr_block = {}
     fltr_block = {}
+    cnn_block = {}
     block_row_idx = 0
     block_column_idx = arch_start_block_indx
     block_size = 200 #um
@@ -33,8 +34,11 @@ def getArchConfigParamsFromDie(no_of_modules,no_of_arrays,no_of_rings_weighing_b
     for module_id in range(no_of_modules):# M
         module = {}
         aggre_mr = {}
+        cnn_mr = {}
         pre_weigh_filter = {}
+        cnn_filter = {}
         aggregate_mr_no = 0
+        cnn_mr_no = 0
         pre_weigh_filter_no = 0
         # print('Module----', module_id)
         # print('rowindex ', block_row_idx)
@@ -44,15 +48,7 @@ def getArchConfigParamsFromDie(no_of_modules,no_of_arrays,no_of_rings_weighing_b
             array = {}
             #pre weigh block filter
             config_params = {}
-            # print("Row ",block_row_idx+1 )
-            # print("Column ", block_column_idx-3)
-            # print(Q_config.shape)
-            # print(ER_config.shape)
-            # LAMDA_R_config = np.transpose(LAMDA_R_config)
-            # print(LAMDA_R_config.shape)
-            # print(FINESSE_config.shape)
-            # print("Row", block_row_idx+1)
-            # print("Column", block_column_idx-3)
+
 
             config_params['Q'] = Q_config[block_row_idx+1][block_column_idx-3]
             config_params['ER'] = ER_config[block_row_idx+1][block_column_idx-3]
@@ -71,6 +67,21 @@ def getArchConfigParamsFromDie(no_of_modules,no_of_arrays,no_of_rings_weighing_b
                 block_column_idx = block_column_idx+block_increment_in_x
             #vector imprint
             block_column_idx = block_column_idx + no_of_blocks_x_for_vector_imprint
+            #CNN block
+            if block_row_idx < 16:
+                config_params = {}
+                cnn_kernal_no = int(block_row_idx/4)
+                block_column_idx += cnn_kernal_no + 1
+                # print("Row Index ",block_row_idx)
+                # print("Column Index ",block_column_idx)
+                config_params['Q'] = Q_config[block_row_idx][block_column_idx]
+                config_params['ER'] = ER_config[block_row_idx][block_column_idx]
+                config_params['LAMDA_R'] = LAMDA_R_config[block_row_idx][block_column_idx]
+                config_params['FINESSE_R'] = FINESSE_config[block_row_idx][block_column_idx]
+                cnn_mr['mr_w' + str(cnn_mr_no)] = config_params
+                block_column_idx += (4 -cnn_kernal_no+1)
+                cnn_mr_no +=1
+
             #summation block
             config_params = {}
             block_row_idx = block_row_idx+1
@@ -85,10 +96,10 @@ def getArchConfigParamsFromDie(no_of_modules,no_of_arrays,no_of_rings_weighing_b
             # block_row_idx += 1
         fltr_block.update({'module'+str(module_id): pre_weigh_filter})
         aggr_block.update({'module'+str(module_id): aggre_mr})
-
+        cnn_block.update({'module'+str(module_id): cnn_mr})
         # print("module",module_id)
         hitlessweight.append(module)
         arc.update({'module'+str(module_id): module})
         # print(arc.keys())
-    return arc,aggr_block,fltr_block
+    return arc,aggr_block,fltr_block,cnn_block
 

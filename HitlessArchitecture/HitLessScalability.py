@@ -93,6 +93,15 @@ class HitLessArchitecture():
         pre_weigh_loss = pre_weigh_blk_wvg_loss + filter_drop_loss
         # print("Pre Waveguide Filter Drop Loss ", filter_drop_loss)
         return pre_weigh_loss
+    def getCnnBlkLoss(self,cnn_blk,module_name,wavelength_idx,lamdar_per_channel):
+
+        cnn_blk_loss = self.getDropLossOfRing(cnn_blk[module_name]['mr_w' + str(wavelength_idx)]['Q'],
+                                              cnn_blk[module_name]['mr_w' + str(wavelength_idx)]['ER'],
+                                              lamdar_per_channel[wavelength_idx], 0)
+        no_of_cnn_blk = 4
+        cnn_blk_loss += (self.insertion_loss_percm * 1e-4)*(no_of_cnn_blk*self.pitch+1)
+
+        return cnn_blk_loss
 
     def getAggregateBlkLoss(self,module_name,aggre_blk,wavelength_idx,lamdar_per_channel,nlamda):
         # calculate summation Mr ring drop loss
@@ -172,7 +181,7 @@ class HitLessArchitecture():
         sort_files.sort(key=lambda x: os.path.getmtime(x))
         return sort_files
 
-    def getTotalLossOfArray(self,module_name,array_idx,pre_filter,aggre_blk,lamdar_per_channel,nlamda):
+    def getTotalLossOfArray(self,module_name,array_idx,pre_filter,aggre_blk,cnn_blk,lamdar_per_channel,nlamda):
 
 
         # pre weighing blk
@@ -185,6 +194,12 @@ class HitLessArchitecture():
 
         # print("Weigh blk wvg IL ",weigh_blk_loss)
         # print("Imprint blk wvg IL ",imprint_blk_loss)
+        cnn_blk_loss = 0
+        #Cnn block loss
+        if array_idx<16:
+            cnn_blk_loss = self.getCnnBlkLoss(cnn_blk, module_name, array_idx,lamdar_per_channel)
+            # print("Cnn Blk Loss",cnn_blk_loss)
+
 
         # aggregation block
         # calculate summation Mr ring drop loss
@@ -200,7 +215,7 @@ class HitLessArchitecture():
 
         aggre_blk_loss += aggr_mr_drop_loss
         # print("Total Aggregate block loss :",aggre_blk_loss)
-        total_insertion_loss_dB = pre_weigh_loss + weigh_blk_loss + imprint_blk_loss + aggre_blk_loss
+        total_insertion_loss_dB = pre_weigh_loss + weigh_blk_loss + imprint_blk_loss + aggre_blk_loss +cnn_blk_loss
         if self.verbose != 0:
             print("Pre Weigh Block : ", pre_weigh_loss)
             print("Weigh Blk Loss : ", weigh_blk_loss)
