@@ -1,0 +1,33 @@
+{
+  "arch_config": {
+    "preweighingblock": 600,
+    "ring_radius": 4.55,
+    "pitch": 200,
+    "no_of_modules": 1,
+    "nlamda": 99
+  },
+  "die_config": {
+    "die_x": 15,
+    "die_y": 30
+  },
+  "resolution_config": {
+    "HEATER_THICKNESS": 100e-9,
+    "CHIP_BOUNDARY_RADIUS": 1e-3,
+    "DESIGN_ER": 10
+  },
+  "design_config": {
+    "p_waveguide_maop": 100,
+    "detector_sensitivity": -20,
+    "adc_pw_mw": 0.2,
+    "RESONANCE_WAVELENGTH": 1550,
+    "FSR": 20,
+    "insertion_loss_percm": 1
+
+  },
+  "die_data_path": {
+    "ER_data_path": "interpvfolder/ER/Block2by2/",
+    "LAMDA_R_data_path": "interpvfolder/LAMDA_R/Block2by2/",
+    "Q_data_path": "interpvfolder/Q/Block2by2/",
+    "FINESSE_data_path" : "interpvfolder/FINESSE/Block2by2/"
+  }
+}

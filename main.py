@@ -26,6 +26,7 @@ FINESSE_dies_config = arc_obj.getParameterDieFiles(arc_obj.FINESSE_data_path)
 
 die_resolution_nlamda_rslts = []
 supported_nlamda = []
+res_median = []
 die_no = 0
 no_of_dies = 80
 verbose = 0
@@ -166,11 +167,15 @@ for die in range(no_of_dies):
     if verbose>=0:
         print("Max supported Nlamda", max(supported_nlamda))
         print("Min Resolution ", min(resoution_of_weight_blk))
+        res_median.append(np.median(resoution_of_weight_blk))
+        print("Median Resolution",np.median(resoution_of_weight_blk))
         print("Resolution ", resoution_of_weight_blk)
     die_rslts['max_supported_nlamda'] = max(supported_nlamda)
     die_rslts['resolution'] = min_resolution
     die_resolution_nlamda_rslts.append(die_rslts)
 print("Die Results:", die_resolution_nlamda_rslts)
+print("Median Resolution across Dies", np.median(res_median))
+print("Res Median", res_median)
 keys = die_resolution_nlamda_rslts[0].keys()
 try:
     with open(result_filename, 'w', newline='') as output_file:
