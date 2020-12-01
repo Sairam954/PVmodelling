@@ -13,7 +13,8 @@ class BroadcastAndWeight():
     def __init__(self, config_dict):
         arch_config = config_dict["arch_config"]
         self.preweighingblock = arch_config["preweighingblock"]
-
+        self.premuxblock = arch_config["premuxblock"]
+        self.vectorimprintblock = arch_config["vectorimprintblock"]
         self.ring_radius = arch_config["ring_radius"]
         self.pitch = arch_config["pitch"]
         self.no_of_modules = arch_config["no_of_modules"]
@@ -22,6 +23,7 @@ class BroadcastAndWeight():
         die_config = config_dict["die_config"]
         self.die_x = die_config["die_x"]
         self.die_y = die_config["die_y"]
+        self.no_of_dies = die_config["no_of_dies"]
         # resolution config in mm
         resolution_config = config_dict["resolution_config"]
         self.HEATER_THICKNESS = resolution_config["HEATER_THICKNESS"]
@@ -34,7 +36,8 @@ class BroadcastAndWeight():
         self.RESONANCE_WAVELENGTH = design_config["RESONANCE_WAVELENGTH"]
         self.FSR = design_config["FSR"]
         self.insertion_loss_percm = design_config["insertion_loss_percm"]
-
+        self.mzi_insertion_loss = design_config["mzi_insertion_loss"]
+        self.mzi_ER_dB = design_config["mzi_ER_dB"]
         self.adc_pw_mw = design_config["adc_pw_mw"]
         # pv dies path containing csvs with design parameters like Q,FINESSE,ER and LAMDA_R
         die_data_path = config_dict["die_data_path"]
@@ -59,13 +62,17 @@ class BroadcastAndWeight():
         perumloss = self.insertion_loss_percm * 1e-4
         return length_of_blk_waveguide * perumloss
 
-    def getThroughLossOfRing(self,Q, ER, LamdaR, delta_lamda):
+    def getThroughLossOfRing(self, Q, ER, LamdaR, delta_lamda):
         A = 1 - (1/ER)
         through_loss = 1 - (A/(1+np.square((2*Q*delta_lamda)/LamdaR)))
         return -10*np.log10(through_loss)
 
+    def getInsertionLossImprintBlk(self):
+        perumloss = self.insertion_loss_percm * 1e-4
+        imprint_waveguide_loss = (self.vectorimprintblock + 2 * self.pitch) * perumloss
+        return imprint_waveguide_loss + self.mzi_insertion_loss
 
-    def getDropLossOfRing(self,Q, ER, LamdaR, delta_lamda):
+    def getDropLossOfRing(self, Q, ER, LamdaR, delta_lamda):
         A = 1 - (1/ER)
         dropport_loss = (A/(1+np.square((2*Q*delta_lamda)/LamdaR)))
         return -10*np.log10(dropport_loss)
@@ -96,6 +103,17 @@ class BroadcastAndWeight():
         # resolution = int(resolution * (mr_pv_ER / DESIGN_ER))
         return resolution
 
+    def getPowerOfWavelengthFloorandCeiling(self, mr_wgt_ER, total_insertion_loss_dB, per_wavelength_power_dbm):
+        weigh_blk_mr_ER = mr_wgt_ER
+        weigh_blk_mr_ER_dB = 10 * np.log10(weigh_blk_mr_ER)
+        imprint_blk_mzi_ER_dB = self.mzi_ER_dB
+        # print("ER of Weight block in dB", weigh_blk_mr_ER_dB)
+        pow_wavelength_at_pd_dbm_floor = per_wavelength_power_dbm - weigh_blk_mr_ER_dB - imprint_blk_mzi_ER_dB - total_insertion_loss_dB
+        print("Per Wavelength ",per_wavelength_power_dbm)
+        print("total_insertion_loss_dB",total_insertion_loss_dB)
+        pow_wavelength_at_pd_dbm_ceiling = per_wavelength_power_dbm - total_insertion_loss_dB
+        return pow_wavelength_at_pd_dbm_floor, pow_wavelength_at_pd_dbm_ceiling
+
     def getParameterDieFiles(self, path):
         files = [file for file in os.listdir(path) if (file.lower().endswith('.csv'))]
         sort_files = []
@@ -107,69 +125,71 @@ class BroadcastAndWeight():
         return sort_files
 
 
-    def getTotalLossOfArray(self,module_name,wavelength_idx,mr,lamdar_per_channel,nlamda):
+    def getTotalLossOfArray(self,module_name, wavelength_idx, array, demul_mr, mul_mr,lamdar_per_channel,nlamda):
 
+        # pre mux and demux blk
+        pre_mux_loss = (self.insertion_loss_percm*1e-4)*(self.premuxblock+self.pitch+wavelength_idx*self.pitch)
+        # print("Pre Mux Loss",pre_mux_loss)
+        # demux loss
+        # calculate through loss
 
-        # pre weighing blk
-        pre_weigh_loss = self.getPreWeighBlkLoss()
-        print("Pre Weigh Loss", pre_weigh_loss)
-        # weigh blk loss is wvg loss and drop loss of the rings
-        weigh_blk_loss = self.getInsertionLoss(nlamda)
         lamda_idx = wavelength_idx
         resonant_wavelength = lamdar_per_channel[lamda_idx]
-        aggr_drop_loss = 0
+        demux_through_loss = 0
+        demux_mr_Q = demul_mr['mr_w' + str(wavelength_idx)]['Q']
+        demux_mr_ER = demul_mr['mr_w' + str(wavelength_idx)]['ER']
+
         for lamda in range(lamda_idx + 1, nlamda):
             operating_wavelength = lamdar_per_channel[lamda]
 
             through_loss = 0
             delta_lamda = abs(operating_wavelength - resonant_wavelength)
             # print("Delta Lamda", delta_lamda)
-            drop_loss = self.getDropLossOfRing(aggr_mr_Q, aggr_mr_ER, resonant_wavelength, delta_lamda)
+            through_loss = self.getThroughLossOfRing(demux_mr_Q, demux_mr_ER, resonant_wavelength, delta_lamda)
             # print("Through Loss on ring :" + str(wavelength_idx + 1) + " due to ring :" + str(lamda + 1) + " is :" + str(
             #     through_loss))
-            aggr_through_loss += through_loss
-        # print("Through Loss of Ring ", (wavelength_idx + 1))
-        # print("Aggre Through Loss dB", aggr_through_loss)
+            demux_through_loss += through_loss
+        # print("Through Loss of Demux Ring ", (wavelength_idx + 1))
+        # print("Demux Through Loss dB", demux_through_loss)
+        #imprint loss
+        imprint_blk_loss = self.getInsertionLossImprintBlk()
+        # print("Insertion Loss Imprint block",imprint_blk_loss)
+        #mux through loss
+        mux_mr_Q = mul_mr['mr_w' + str(wavelength_idx)]['Q']
+        mux_mr_ER = mul_mr['mr_w' + str(wavelength_idx)]['ER']
+        mux_drop_loss = self.getDropLossOfRing(mux_mr_Q,mux_mr_ER,resonant_wavelength,0)
+        # print("Mul Mr drop loss", mux_drop_loss)
 
-        aggre_blk_loss = aggr_mr_drop_loss + aggr_wvg_loss + aggr_through_loss
-        return aggre_blk_loss
+        #mux demux wvg propagation loss
+        demux_blk_wvg_loss = (self.insertion_loss_percm*1e-4)*(self.ring_radius*4+wavelength_idx*self.pitch+self.pitch)
+        # print("Demux Blk Wvg Loss",demux_blk_wvg_loss)
+
+        # pre weigh block loss
+        pre_weigh_loss = (self.insertion_loss_percm*1e-4)*(self.preweighingblock+self.pitch)
+        # print("Pre Weight loss", pre_weigh_loss)
+        #
+        # Weighing block loss
+        weigh_mr = array['mr_w' + str(wavelength_idx)]
+        mr_through_loss = 0
+        weigh_mr_Q = weigh_mr['Q']
+        weigh_mr_ER = weigh_mr['ER']
+        weigh_through_loss =0
+        for lamda in range(0, nlamda):
+            operating_wavelength = lamdar_per_channel[lamda]
+
+            through_loss = 0
+            delta_lamda = abs(operating_wavelength - resonant_wavelength)
+            # print("Delta Lamda", delta_lamda)
+            if delta_lamda==0:
+                through_loss = 0
+            else:
+                through_loss = self.getThroughLossOfRing(weigh_mr_Q, weigh_mr_ER, resonant_wavelength, delta_lamda)
+            # print("Through Loss on ring :" + str(wavelength_idx + 1) + " due to ring :" + str(lamda + 1) + " is :" + str(through_loss))
+            weigh_through_loss += through_loss
+        total_insertion_loss = pre_mux_loss+demux_through_loss+imprint_blk_loss+mux_drop_loss+demux_blk_wvg_loss+pre_weigh_loss+weigh_through_loss
+        print("Total Inserstion Loss ", total_insertion_loss)
+        return total_insertion_loss
 
 
 
 
-        # Weight and Imprint blk
-        # calculate the weighing block wvg propogation loss and vector imprint block wvg loss plus MZI insertion loss
-        # weigh_blk_loss = self.getInsertionLoss(self.no_of_rings_weighing_blk)
-        #         # imprint_blk_loss = self.getInsertionLossImprintBlk()
-        #         #
-        #         # # print("Weigh blk wvg IL ",weigh_blk_loss)
-        #         # # print("Imprint blk wvg IL ",imprint_blk_loss)
-        #         # cnn_blk_loss = 0
-        #         # #Cnn block loss
-        #         # if array_idx<16:
-        #         #     cnn_blk_loss = self.getCnnBlkLoss(cnn_blk, module_name, array_idx,lamdar_per_channel)
-        #         #     # print("Cnn Blk Loss",cnn_blk_loss)
-        #         #
-        #         #
-        #         # # aggregation block
-        #         # # calculate summation Mr ring drop loss
-        #         # aggr_mr_drop_loss = self.getDropLossOfRing(aggre_blk[module_name]['mr_w' + str(array_idx)]['Q'],
-        #         #                                               aggre_blk[module_name]['mr_w' + str(array_idx)]['ER'],
-        #         #                                               lamdar_per_channel[array_idx], 0)
-        #         # # print("Aggr blk Mr loss ",aggr_mr_drop_loss)
-        #         #
-        #         # # pd is at the top
-        #         #
-        #         # aggre_blk_loss = self.getAggregateBlkLoss(module_name, aggre_blk, wavelength_idx=array_idx,
-        #         #                                              lamdar_per_channel=lamdar_per_channel, nlamda=nlamda)
-        #         #
-        #         # aggre_blk_loss += aggr_mr_drop_loss
-        #         # # print("Total Aggregate block loss :",aggre_blk_loss)
-        #         # total_insertion_loss_dB = pre_weigh_loss + weigh_blk_loss + imprint_blk_loss + aggre_blk_loss +cnn_blk_loss
-        #         # if self.verbose != 0:
-        #         #     print("Pre Weigh Block : ", pre_weigh_loss)
-        #         #     print("Weigh Blk Loss : ", weigh_blk_loss)
-        #         #     print("Imprint Blk Loss : ", imprint_blk_loss)
-        #         #     print("Aggre_blk_Loss : ", aggre_blk_loss)
-        #         #     print("Total Insertion losses dB: ", total_insertion_loss_dB)
-        #         # return total_insertion_loss_dB
