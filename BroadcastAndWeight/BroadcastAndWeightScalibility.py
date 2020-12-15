@@ -77,13 +77,13 @@ class BroadcastAndWeight():
         dropport_loss = (A/(1+np.square((2*Q*delta_lamda)/LamdaR)))
         return -10*np.log10(dropport_loss)
 
-    def getMaxThermalCrossTalkError(self, r_source, finesse):
-
+    def getMaxThermalCrossTalkError(self, r_sources, finesse):
+        heat_diffusion = 0
         # for source in r_source:
-        #     heat_diffusion = heat_diffusion+(np.log(r_chip_boundary/source)/np.log(r_chip_boundary/ring_radius))
-
-        heat_diffusion = (np.log(self.CHIP_BOUNDARY_RADIUS / r_source) / np.log(
-            self.CHIP_BOUNDARY_RADIUS / (self.ring_radius * 1e-6)))
+        #     heat_diffusion = heat_diffusion + (np.log(r_chip_boundary / source) / np.log(r_chip_boundary / ring_radius))
+        for r_source in r_sources:
+            heat_diffusion += (np.log(self.CHIP_BOUNDARY_RADIUS / r_source) / np.log(
+                self.CHIP_BOUNDARY_RADIUS / (self.ring_radius * 1e-6)))
         # we consider in an array if MR adjacent two MRs incur thermal losses so summation of the sources
         # considetring both the rings are at a similar or equal distance
         # heat_diffusion = 2*heat_diffusion
@@ -91,15 +91,20 @@ class BroadcastAndWeight():
         max_error = 0.65 * finesse * (self.HEATER_THICKNESS / (2 * self.ring_radius * 1e-6)) * heat_diffusion
         return max_error
 
-    def getResolution(self, mr_0):
-        thermal_crosstalk_error = self.getMaxThermalCrossTalkError(r_source=(self.pitch * 1e-6),
+    def getResolution(self, mr_0,r_sources):
+        thermal_crosstalk_error = self.getMaxThermalCrossTalkError(r_sources=r_sources,
                                                                    finesse=mr_0['FINESSE_R'])
         mr_pv_ER = mr_0['ER']
         resolution = 1 / (thermal_crosstalk_error)
+        print("Resoultion", resolution)
         resolution = resolution * ((mr_pv_ER / self.DESIGN_ER))
         # resolution = resolution.astype(int)
-        # print("Resoultion",np.log2(resolution))
+
         resolution = np.ceil(np.log2(resolution)).astype(int)
+        if resolution<0:
+            resolution =0
+
+        print("Resoultion value", resolution)
         # resolution = int(resolution * (mr_pv_ER / DESIGN_ER))
         return resolution
 
@@ -123,8 +128,42 @@ class BroadcastAndWeight():
                 # print(os.path.join(path, file))
         sort_files.sort(key=lambda x: os.path.getmtime(x))
         return sort_files
+    def getTransmission(self,mr,lamda_r,delta_lamda):
+        A = 1 - (1 / mr['ER'])
+        transmission = 1 - (A / (1 + np.square((2 * mr['Q'] * delta_lamda) / lamda_r)))
+        return transmission
+    def optimalChannelGap(self,mr1,mr2,channel_spacing):
+        FWHM = mr1['LAMDA_R']/mr1['Q']
+        period = FWHM/4
+        FWHM_array = np.arange(0, channel_spacing, period)
+        mr1_trns = []
+        mr2_trns = []
+        delta_trns = {}
+        for cspace in FWHM_array:
+            mr1_t = self.getTransmission(mr1,cspace)
+            mr1_trns.append(mr1_t)
+            mr2_t = self.getTransmission(mr2,-cspace)
+            mr2_trns.append(mr2_t)
+            del_t = mr1_t-mr2_t
+            delta_trns[cspace] = (del_t)
+        delta_trns_values = np.array(list(delta_trns.values()))
+        print(delta_trns_values)
+        max_negitive = np.where(delta_trns_values < 0, delta_trns_values, -np.inf).argmax()
+        min_positive = np.where(delta_trns_values > 0, delta_trns_values, np.inf).argmin()
+        print("Max Negative", delta_trns_values[max_negitive])
+        print("Min Positive", delta_trns_values[min_positive])
+        optimal_delta_csp = min(delta_trns,key=delta_trns.get)
+        mr1_transmission_at_optimal = self.getTransmission(mr1,optimal_delta_csp)
+        mr1_transmission_at_zero = self.getTransmission(mr1,0)
+        ER = mr1_transmission_at_optimal-mr1_transmission_at_zero
+        print("ER",-10*np.log10(abs(ER)))
+        print("mr1_trns",mr1_trns)
+        print("mr2_trns",mr2_trns)
+        print("delta_trns",delta_trns)
+        print("delta trans values",delta_trns.values())
+        print("optimal Delta ",optimal_delta_csp)
 
-
+        print("FWHM_ARRAY", FWHM_array)
     def getTotalLossOfArray(self,module_name, wavelength_idx, array, demul_mr, mul_mr,lamdar_per_channel,nlamda):
 
         # pre mux and demux blk
@@ -135,11 +174,12 @@ class BroadcastAndWeight():
 
         lamda_idx = wavelength_idx
         resonant_wavelength = lamdar_per_channel[lamda_idx]
+
         demux_through_loss = 0
         demux_mr_Q = demul_mr['mr_w' + str(wavelength_idx)]['Q']
         demux_mr_ER = demul_mr['mr_w' + str(wavelength_idx)]['ER']
-
-        for lamda in range(lamda_idx + 1, nlamda):
+        demux_drop_loss = self.getDropLossOfRing(demux_mr_Q, demux_mr_ER, resonant_wavelength, 0)
+        for lamda in range(0, lamda_idx):
             operating_wavelength = lamdar_per_channel[lamda]
 
             through_loss = 0
@@ -150,15 +190,29 @@ class BroadcastAndWeight():
             #     through_loss))
             demux_through_loss += through_loss
         # print("Through Loss of Demux Ring ", (wavelength_idx + 1))
-        # print("Demux Through Loss dB", demux_through_loss)
+        print("Demux Through Loss dB", demux_through_loss)
         #imprint loss
         imprint_blk_loss = self.getInsertionLossImprintBlk()
         # print("Insertion Loss Imprint block",imprint_blk_loss)
-        #mux through loss
+        #mux through loss due to other rings
+        mux_through_loss = 0
         mux_mr_Q = mul_mr['mr_w' + str(wavelength_idx)]['Q']
         mux_mr_ER = mul_mr['mr_w' + str(wavelength_idx)]['ER']
-        mux_drop_loss = self.getDropLossOfRing(mux_mr_Q,mux_mr_ER,resonant_wavelength,0)
-        # print("Mul Mr drop loss", mux_drop_loss)
+        # Mux drop port loss
+        mux_drop_loss = self.getDropLossOfRing(mux_mr_Q, mux_mr_ER, resonant_wavelength, 0)
+
+        for lamda in range(0, lamda_idx):
+            operating_wavelength = lamdar_per_channel[lamda]
+
+            through_loss = 0
+            delta_lamda = abs(operating_wavelength - resonant_wavelength)
+            # print("Delta Lamda", delta_lamda)
+            through_loss = self.getThroughLossOfRing(mux_mr_Q, mux_mr_ER, resonant_wavelength, delta_lamda)
+            # print("Through Loss on ring :" + str(wavelength_idx + 1) + " due to ring :" + str(lamda + 1) + " is :" + str(
+            #     through_loss))
+            mux_through_loss += through_loss
+
+        print("Mul Mr drop loss dB", mux_through_loss)
 
         #mux demux wvg propagation loss
         demux_blk_wvg_loss = (self.insertion_loss_percm*1e-4)*(self.ring_radius*4+wavelength_idx*self.pitch+self.pitch)
@@ -174,7 +228,7 @@ class BroadcastAndWeight():
         weigh_mr_Q = weigh_mr['Q']
         weigh_mr_ER = weigh_mr['ER']
         weigh_through_loss =0
-        for lamda in range(0, nlamda):
+        for lamda in range(0, lamda_idx):
             operating_wavelength = lamdar_per_channel[lamda]
 
             through_loss = 0
@@ -186,9 +240,17 @@ class BroadcastAndWeight():
                 through_loss = self.getThroughLossOfRing(weigh_mr_Q, weigh_mr_ER, resonant_wavelength, delta_lamda)
             # print("Through Loss on ring :" + str(wavelength_idx + 1) + " due to ring :" + str(lamda + 1) + " is :" + str(through_loss))
             weigh_through_loss += through_loss
-        total_insertion_loss = pre_mux_loss+demux_through_loss+imprint_blk_loss+mux_drop_loss+demux_blk_wvg_loss+pre_weigh_loss+weigh_through_loss
+        total_insertion_loss = pre_mux_loss+demux_drop_loss+demux_through_loss+imprint_blk_loss+mux_drop_loss+mux_through_loss+demux_blk_wvg_loss+pre_weigh_loss+weigh_through_loss
         print("Total Inserstion Loss ", total_insertion_loss)
         return total_insertion_loss
+    def findMinAndMaxConfig(self,array,parameter):
+        valuesOfMr = []
+        for mr_no in list(array.keys()):
+            mr = array[mr_no]
+            valuesOfMr.append(mr[parameter])
+        return min(valuesOfMr),max(valuesOfMr)
+
+
 
 
 

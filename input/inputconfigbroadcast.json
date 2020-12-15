@@ -4,14 +4,14 @@
     "premuxblock": 300,
     "vectorimprintblock": 800,
     "ring_radius": 4.55,
-    "pitch": 200,
+    "pitch": 100,
     "no_of_modules": 1,
-    "nlamda": 75
+    "nlamda": 10
   },
   "die_config": {
     "die_x": 15,
     "die_y": 30,
-    "no_of_dies": 1
+    "no_of_dies": 80
   },
   "resolution_config": {
     "HEATER_THICKNESS": 100e-9,
@@ -29,9 +29,9 @@
     "mzi_ER_dB": 10
   },
   "die_data_path": {
-    "ER_data_path": "interpvfolder/ER/Block2by2/",
-    "LAMDA_R_data_path": "interpvfolder/LAMDA_R/Block2by2/",
-    "Q_data_path": "interpvfolder/Q/Block2by2/",
-    "FINESSE_data_path" : "interpvfolder/FINESSE/Block2by2/"
+    "ER_data_path": "interpvfolder/ER/Block1by1/",
+    "LAMDA_R_data_path": "interpvfolder/LAMDA_R/Block1by1/",
+    "Q_data_path": "interpvfolder/Q/Block1by1/",
+    "FINESSE_data_path" : "interpvfolder/FINESSE/Block1by1/"
   }
 }
